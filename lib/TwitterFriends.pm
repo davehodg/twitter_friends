@@ -1,5 +1,7 @@
 package TwitterFriends;
 
+use strict;
+use warnings;
 
 use Net::Twitter::Lite::WithAPIv1_1;
 use Scalar::Util 'blessed';
