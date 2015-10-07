@@ -5,7 +5,7 @@ use warnings;
 
 use Net::Twitter::Lite::WithAPIv1_1;
 use Scalar::Util 'blessed';
-
+use Data::Dumper;
 
 sub new {
   my $nt = Net::Twitter::Lite::WithAPIv1_1->new(
@@ -17,7 +17,7 @@ sub new {
                                                );
 
   #my $result = $nt->update('Hello, world!');
-
+  if (0) {
   eval {
     my $statuses = $nt->home_timeline({ since_id => 3600, count => 10 });
     for my $status ( @$statuses ) {
@@ -32,6 +32,17 @@ sub new {
       "HTTP Message......: ", $err->message, "\n",
       "Twitter error.....: ", $err->error, "\n";
   }
+}
+
+
+  eval {
+    my $friends = $nt->friends();
+
+
+    foreach my $u ( @{ $friends->{users} } ) {
+      print "$u->{friends_count} : $u->{name} : $u->{status}->{created_at}\n";
+    }
+  }    
 
 }
   
