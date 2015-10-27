@@ -4,48 +4,67 @@ use strict;
 use warnings;
 
 use Net::Twitter::Lite::WithAPIv1_1;
+use LWP::Simple;
 use Scalar::Util 'blessed';
 use Data::Dumper;
+use Carp;
 
 sub new {
-  my $nt = Net::Twitter::Lite::WithAPIv1_1->new(
-                                                consumer_key        => $ENV{TWITTER_API_KEY},
-                                                consumer_secret     => $ENV{TWITTER_API_SECRET},
-                                                access_token        => $ENV{TWITTER_ACCESS_TOKEN},
-                                                access_token_secret => $ENV{TWITTER_ACCESS_TOKEN_SECRET},
-                                                ssl                 => 1,
-                                               );
+  my ($class) = @_ ;
+  my $obj = bless {}, $class ;
 
-  #my $result = $nt->update('Hello, world!');
-  if (0) {
-  eval {
-    my $statuses = $nt->home_timeline({ since_id => 3600, count => 10 });
-    for my $status ( @$statuses ) {
-      print "$status->{created_at} <$status->{user}{screen_name}> $status->{text}\n";
-    }
-  };
-  if ( my $err = $@ ) {
-    die $@ unless blessed $err && $err->isa('Net::Twitter::Lite::Error');
-    
-    warn
-      "HTTP Response Code: ", $err->code, "\n",
-      "HTTP Message......: ", $err->message, "\n",
-      "Twitter error.....: ", $err->error, "\n";
-  }
+  my $nt = Net::Twitter::Lite::WithAPIv1_1->new
+    (
+     consumer_key        => $ENV{TWITTER_API_KEY},
+     consumer_secret     => $ENV{TWITTER_API_SECRET},
+     access_token        => $ENV{TWITTER_ACCESS_TOKEN},
+     access_token_secret => $ENV{TWITTER_ACCESS_TOKEN_SECRET},
+     ssl                 => 1,
+    );
+  $obj->{nt} = $nt;
+  return $obj;
 }
 
 
-  eval {
-    my $friends = $nt->friends();
-
-
-    foreach my $u ( @{ $friends->{users} } ) {
-      print "$u->{friends_count} : $u->{name} : $u->{status}->{created_at}\n";
-    }
-  }    
-
-}
+sub friends {
+  my $self = shift;
   
+  my @friends;
+  my $friends;
+
+  my $cursor = -1;
+
+  while ($cursor) {
+    my $rls = $self->{nt}->rate_limit_status;
+    warn Dumper($rls->{resources}->{friends}->{'/friends/list'});
+    
+    eval {
+      $friends = $self->{nt}->friends_list({cursor => $cursor});
+      foreach my $u ( @{ $friends->{users} } ) {
+        warn $u->{name}, " ", $u->{url}, " ", $u->{screen_name};
+        push @friends,
+          {
+           friends_count   => $u->{friends_count},
+           followers_count => $u->{followers_count},
+           name            => $u->{name},
+           created_at      => $u->{status}->{created_at},
+           id              => $u->{id},
+           url             => $u->{url},
+           screen_name     => $u->{screen_name},
+          } ;
+      }    
+    } ;
+    if ($@) {
+      croak $@;
+    }
+    $cursor = $friends->{next_cursor};
+    sleep 5;
+  }
+
+  warn $#{ $friends };
+  warn Dumper($@{ $friends });
+  return \@friends;    
+}
 
 
 1;

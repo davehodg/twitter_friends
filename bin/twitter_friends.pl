@@ -8,7 +8,7 @@ use TwitterFriends;
 
 
 my $tf = TwitterFriends->new;
-
+my $friends = $tf->friends;
 
 
 exit;
